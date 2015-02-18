@@ -6,7 +6,7 @@ known_networks = {}
 
 def updateIpInfo(ip):
     info = IPWhois(ip).lookup()
-    # these three lines might break on some input
+    # these two lines might break on some input
     net = info['nets'][0]
     networks = net['cidr'].split(', ')
     for network in networks:
