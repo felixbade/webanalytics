@@ -14,6 +14,7 @@ def updateIpInfo(ip):
     for network in networks:
         network = network
         known_networks.update({network: net})
+    known_networks.sync()
     return net
 
 def getIpInfo(ip):
