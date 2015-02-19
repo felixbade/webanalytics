@@ -1,8 +1,10 @@
 from ipaddress import ip_address, ip_network
+import shelve
 
 from ipwhois import IPWhois
 
-known_networks = {}
+ip_whois_shelve_filename = 'ip_whois'
+known_networks = shelve.open(ip_whois_shelve_filename)
 
 def updateIpInfo(ip):
     info = IPWhois(ip).lookup()
@@ -10,14 +12,14 @@ def updateIpInfo(ip):
     net = info['nets'][0]
     networks = net['cidr'].split(', ')
     for network in networks:
-        network = ip_network(network)
+        network = network
         known_networks.update({network: net})
     return net
 
 def getIpInfo(ip):
     ip = ip_address(ip)
     for network in known_networks:
-        if ip in network:
+        if ip in ip_network(network):
             info = known_networks[network]
             return info
     info = updateIpInfo(ip)
