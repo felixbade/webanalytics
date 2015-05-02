@@ -78,8 +78,10 @@ def getURLFromUA(useragent):
     url = url_start.split()[0].strip(')').strip(',')
     return url
 
+# TODO email
+
 def parseMozilla(platform, info):
-    if platform[0] in ['compatible', 'Mobile']:
+    if platform[0] == 'compatible':
         if platform[1].startswith('MSIE'):
             browser = ('Internet Explorer', version(platform[1].split()[1]))
             os_string = platform[2]
@@ -136,6 +138,10 @@ def parseMozilla(platform, info):
             #return 'bot', browser
         return client
         #return platform, browser
+
+    if platform[0] == 'Mobile':
+        platform.pop(0)
+
     if platform[0] in ['iPad', 'iPhone', 'iPod', 'iPod touch']:
         osname = 'iOS'
         osver = re.match(r'CPU (iPhone )?OS ([0-9_]*) like Mac OS X', platform[-1]).group(2)
@@ -331,10 +337,11 @@ if __name__ == '__main__':
         parsed = parseUserAgent(ua)
         #print(repr(ua))
         if parsed is not None:
-            print(parsed)
+            #print(ua + '\t' + repr(parsed))
+            #print(parsed)
             0
         else:
-            #print(ua)
+            print(ua)
             0
         #if parsed is not None:
             #print(parsed)
