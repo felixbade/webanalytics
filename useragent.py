@@ -1,13 +1,13 @@
 import re
 import traceback
 
-def parseUA(useragent):
+def parseUserAgent(useragent):
     uasplit = splitUserAgent(useragent)
     if not uasplit:
         return {}
     
     if not seemsLikeANormalUA(useragent):
-        return {'text': useragent}
+        return None#{'text': useragent}
 
     parsed = {}
     url = getURLFromUA(useragent)
@@ -23,7 +23,7 @@ def parseUA(useragent):
     elif agent[0] == 'Mozilla':
         platform = uasplit[1].strip('()').split('; ')
         #if platform[0] == 'compatible':
-        #    return parseUA('; '.join(platform[1:])) # very hacky!
+        #    return parseUserAgent('; '.join(platform[1:])) # very hacky!
         info = uasplit[2:]
         try:
             new = parseMozilla(platform, info)
@@ -194,8 +194,51 @@ def parseMozilla(platform, info):
             browser = (bname, bver)
         #return
         return {'device': device, 'os': os, 'browser': browser }
+
+    if platform[0].startswith('Windows'):
+        if platform[0] == 'Windows':
+            platform.pop(0)
+        if platform[0] == 'U':
+            platform.pop(0)
+        os_string = platform.pop(0)
+        osname = os_string.rsplit(' ', 1)[0]
+        osver = version(os_string.split()[-1])
+        os = (osname, osver)
+        if 'Trident/7.0' in platform:
+            browser = ('Internet Explorer', [11])
+        else:
+            browser = parseWebKitTail(info)
+        if osname == 'Windows Phone':
+            device = '%s %s' % (platform[-2], platform[-1])
+            return {'browser': browser, 'os': os, 'device': device}
+        else:
+            return {'browser': browser, 'os': os}
     
-    #if platform[0].startswith('Windows NT '):
+    if platform[0] == 'MeeGo':
+        browser = parseWebKitTail(info)
+        device = platform[1]
+        os = splitVersion(platform[0])
+        return {'browser': browser, 'os': os, 'device': device}
+    
+    if platform[0].startswith('Symbian'):
+        browser = parseWebKitTail(info)
+        device = platform[1].split()[-1].split('/')[0]
+        os = splitVersion(platform[0])
+        return {'browser': browser, 'os': os, 'device': device}
+
+    if platform[0] == 'X11':
+        if platform[1] == 'U':
+            platform.pop(1)
+        osname = platform[1].split()[0]
+        if osname == 'Linux':
+            # TODO architecture
+            browser = parseWebKitTail(info)
+            return {'browser': browser, 'os': (osname, [])}
+        elif osname == 'CrOS':
+            osver = version(platform[1].split()[-1])
+            browser = parseWebKitTail(info)
+            return {'browser': browser, 'os': (osname, osver)}
+
     return# info
     #return platform, info
 
@@ -227,22 +270,22 @@ def parseWebKitTail(info):
         return browser_name, browser_version
 
     # TODO: this function should probably know something about the operating system...
-    elif info[1].startswith('Mobile/') and info[2].startswith('Safari/'):
-        name, browser_version = splitVersion(info[0])
-        return splitVersion(info[0])
     
-    # TODO make some kind of hierarchy, Mobile < Safari < Chrome < Version < the rest
-    # Android
+    priority = ['Mobile', 'Safari', 'Chrome', 'Version']
+    browser = None
+    best_priority = -1
     for i in info:
-        if i.startswith('Safari/'):
-            info.remove(i)
-    if 'Mobile' in info:
-        info.remove('Mobile')
-    if len(info) == 1:
-        return splitVersion(info[0])
-    elif len(info) == 2 and info[1].startswith('Chrome/'):
-        return splitVersion(info[0])
-    #print(info)
+        name, ver = splitVersion(i)
+        if not name in priority:
+            best_priority = len(priority) 
+            browser = (name, ver)
+            if ver:
+                break
+        elif priority.index(name) > best_priority:
+            browser = (name, ver)
+            best_priority = priority.index(name)
+    
+    return browser
 
 def parseFacebookUAString(fbstr):
     if fbstr[0] != '[' or fbstr[-1] != ']':
@@ -279,24 +322,23 @@ def version(version):
     numbers = re.split(r'_|\.', version)
     return [int(x) for x in numbers]
 
-#uafile = '/home/felix/fileshare/lyli-useragentit.txt'
-#uafile = 'lyli-useragentit.txt'
+if __name__ == '__main__':
 
-uafile = '/dev/stdin'
+    uafile = '/dev/stdin'
 
-for line in open(uafile):
-    ua = line.strip('\n')
-    parsed = parseUA(ua)
-    #print(repr(ua))
-    if parsed is not None:
-        #print(parsed)
-        0
-    else:
-        print(ua)
-        0
-    #if parsed is not None:
-        #print(parsed)
-    #if parsed:
-        #print(ua)
-   #     print(parsed)
-        #print()
+    for line in open(uafile):
+        ua = line.strip('\n')
+        parsed = parseUserAgent(ua)
+        #print(repr(ua))
+        if parsed is not None:
+            print(parsed)
+            0
+        else:
+            #print(ua)
+            0
+        #if parsed is not None:
+            #print(parsed)
+        #if parsed:
+            #print(ua)
+       #     print(parsed)
+            #print()
